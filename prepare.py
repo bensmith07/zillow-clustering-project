@@ -1,0 +1,203 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+
+
+def prep_zillow(df):
+    # drop redundant id code columns
+    id_cols = [col for col in df.columns if 'typeid' in col or col in ['id', 'parcelid']]
+    df = df.drop(columns=id_cols)
+    # filter for single family properties
+    df = df[df.propertylandusedesc == 'Single Family Residential']
+    # drop specified columns
+    cols_to_drop = ['calculatedbathnbr',
+                    'finishedfloor1squarefeet',
+                    'finishedsquarefeet12', 
+                    'regionidcity',
+                    'landtaxvaluedollarcnt',
+                    'taxamount',
+                    'rawcensustractandblock',
+                    'roomcnt',
+                    'regionidcounty']
+    df = df.drop(columns=cols_to_drop)
+    # fill null values with 0 in specified columns
+    cols_to_fill_zero = ['fireplacecnt',
+                         'garagecarcnt',
+                         'garagetotalsqft',
+                         'hashottuborspa',
+                         'poolcnt',
+                         'threequarterbathnbr',
+                         'taxdelinquencyflag']
+    for col in cols_to_fill_zero:
+        df[col] = np.where(df[col].isna(), 0, df[col]) 
+    # drop columns with more than 5% null values
+    for col in df.columns:
+        if df[col].isnull().mean() > .05:
+            df = df.drop(columns=col)
+    # drop rows that remain with null values
+    df = df.dropna()   
+    # changing numeric codes to strings
+    df['fips'] = df.fips.apply(lambda fips: '0' + str(int(fips)))
+    df['regionidzip'] = df.regionidzip.apply(lambda x: str(int(x)))
+    df['censustractandblock'] = df.censustractandblock.apply(lambda x: str(int(x)))
+    # change the 'Y' in taxdelinquencyflag to 1
+    df['taxdelinquencyflag'] = np.where(df.taxdelinquencyflag == 'Y', 1, df.taxdelinquencyflag)
+    # change boolean column to int
+    df['hashottuborspa'] = df.hashottuborspa.apply(lambda x: str(int(x)))
+    # changing year from float to int
+    df['yearbuilt'] = df.yearbuilt.apply(lambda x: int(x))
+    df['assessmentyear'] = df.yearbuilt.apply(lambda x: int(x))
+    # adding a feature: age 
+    df['age'] = 2017 - df.yearbuilt
+    # add a feature: has_garage
+    df['bool_has_garage'] = np.where(df.garagecarcnt > 0, 1, 0)
+    # add a feature: has_pool
+    df['bool_has_pool'] = np.where(df.poolcnt > 0, 1, 0)
+    # add a feature: has_fireplace
+    df['bool_has_fireplace'] = np.where(df.fireplacecnt > 0, 1, 0)
+    # adding prefix to boolean columns
+    df = df.rename(columns={'hashottuborspa': 'bool_hashottuborspa'})
+    df = df.rename(columns={'taxdelinquencyflag': 'bool_taxdelinquencyflag'})
+    # rename sqft column
+    df = df.rename(columns={'calculatedfinishedsquarefeet': 'sqft'})
+
+    return df
+
+def train_validate_test_split(df, test_size=.2, validate_size=.3, random_state=42):
+    '''
+    This function takes in a dataframe, then splits that dataframe into three separate samples
+    called train, test, and validate, for use in machine learning modeling.
+
+    Three dataframes are returned in the following order: train, test, validate. 
+    
+    The function also prints the size of each sample.
+    '''
+    # split the dataframe into train and test
+    train, test = train_test_split(df, test_size=.2, random_state=42)
+    # further split the train dataframe into train and validate
+    train, validate = train_test_split(train, test_size=.3, random_state=42)
+    # print the sample size of each resulting dataframe
+    print(f'train\t n = {train.shape[0]}')
+    print(f'test\t n = {test.shape[0]}')
+    print(f'validate n = {validate.shape[0]}')
+
+    return train, validate, test
+
+def remove_outliers(train, validate, test, k, col_list):
+    ''' 
+    This function takes in a dataset split into three sample dataframes: train, validate and test.
+    It calculates an outlier range based on a given value for k, using the interquartile range 
+    from the train sample. It then applies that outlier range to each of the three samples, removing
+    outliers from a given list of feature columns. The train, validate, and test dataframes 
+    are returned, in that order. 
+    '''
+    # Create a column that will label our rows as containing an outlier value or not
+    train['outlier'] = False
+    validate['outlier'] = False
+    test['outlier'] = False
+    for col in col_list:
+
+        q1, q3 = train[col].quantile([.25, .75])  # get quartiles
+        
+        iqr = q3 - q1   # calculate interquartile range
+        
+        upper_bound = q3 + k * iqr   # get upper bound
+        lower_bound = q1 - k * iqr   # get lower bound
+
+        # update the outlier label any time that the value is outside of boundaries
+        train['outlier'] = np.where(((train[col] < lower_bound) | (train[col] > upper_bound)) & (train.outlier == False), True, train.outlier)
+        validate['outlier'] = np.where(((validate[col] < lower_bound) | (validate[col] > upper_bound)) & (validate.outlier == False), True, validate.outlier)
+        test['outlier'] = np.where(((test[col] < lower_bound) | (test[col] > upper_bound)) & (test.outlier == False), True, test.outlier)
+
+    # remove observations with the outlier label in each of the three samples
+    train = train[train.outlier == False]
+    train = train.drop(columns=['outlier'])
+
+    validate = validate[validate.outlier == False]
+    validate = validate.drop(columns=['outlier'])
+
+    test = test[test.outlier == False]
+    test = test.drop(columns=['outlier'])
+
+    # print the remaining 
+    print(f'train\t n = {train.shape[0]}')
+    print(f'test\t n = {test.shape[0]}')
+    print(f'validate n = {validate.shape[0]}')
+
+    return train, validate, test
+
+def scale_zillow(train, validate, test, target, scaler_type=MinMaxScaler()):
+    '''
+    This takes in the train, validate, and test dataframes, as well as the target label. 
+
+    It then fits a scaler object to the train sample based on the given sample_type, applies that
+    scaler to the train, validate, and test samples, and appends the new scaled data to the 
+    dataframes as additional columns with the prefix 'scaled_'. 
+
+    train, validate, and test dataframes are returned, in that order. 
+    '''
+    # identify quantitative features to scale
+    quant_features = [col for col in train.columns if (train[col].dtype != 'object') 
+                                                    & (col != target) 
+                                                    & ('bool_' not in col)]
+    # establish empty dataframes for storing scaled dataset
+    train_scaled = pd.DataFrame(index=train.index)
+    validate_scaled = pd.DataFrame(index=validate.index)
+    test_scaled = pd.DataFrame(index=test.index)
+    # screate and fit the scaler
+    scaler = scaler_type.fit(train[quant_features])
+    # adding scaled features to scaled dataframes
+    train_scaled[quant_features] = scaler.transform(train[quant_features])
+    validate_scaled[quant_features] = scaler.transform(validate[quant_features])
+    test_scaled[quant_features] = scaler.transform(test[quant_features])
+    # add 'scaled' prefix to columns
+    for feature in quant_features:
+        train_scaled = train_scaled.rename(columns={feature: f'scaled_{feature}'})
+        validate_scaled = validate_scaled.rename(columns={feature: f'scaled_{feature}'})
+        test_scaled = test_scaled.rename(columns={feature: f'scaled_{feature}'})
+    # concat scaled feature columns to original train, validate, test df's
+    train = pd.concat([train, train_scaled], axis=1)
+    validate = pd.concat([validate, validate_scaled], axis=1)
+    test = pd.concat([test, test_scaled], axis=1)
+
+    return train, validate, test
+
+def encode_zillow(train, validate, test, target):
+    '''
+    This function takes in the train, validate, and test samples, as well as a label for the target variable. 
+
+    It then encodes each of the categorical variables using one-hot encoding with dummy variables and appends 
+    the new encoded variables to the original dataframes as new columns with the prefix 'enc_{variable_name}'.
+
+    train, validate and test dataframes are returned (in that order)
+    '''
+    # identify the features to encode (categorical features represented by non-numeric data types)
+    features_to_encode = [col for col in train.columns if (train[col].dtype == 'object')
+                                                        & ('bool_' not in col) 
+                                                        & (col != target)
+                                                        & (train[col].nunique() < 25)]
+    #iterate through the list of features                  
+    for feature in features_to_encode:
+        # establish dummy variables
+        dummy_df = pd.get_dummies(train[feature],
+                                  prefix=f'enc_{train[feature].name}',
+                                  drop_first=True)
+        # add the dummies as new columns to the original dataframe
+        train = pd.concat([train, dummy_df], axis=1)
+
+    # then repeat the process for the other two samples:
+
+    for feature in features_to_encode:
+        dummy_df = pd.get_dummies(validate[feature],
+                                  prefix=f'enc_{validate[feature].name}',
+                                  drop_first=True)
+        validate = pd.concat([validate, dummy_df], axis=1)
+        
+    for feature in features_to_encode:
+        dummy_df = pd.get_dummies(test[feature],
+                                  prefix=f'enc_{test[feature].name}',
+                                  drop_first=True)
+        test = pd.concat([test, dummy_df], axis=1)
+    
+    return train, validate, test
