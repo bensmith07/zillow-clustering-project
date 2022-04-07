@@ -56,6 +56,14 @@ def prep_zillow(df):
     df['bool_has_pool'] = np.where(df.poolcnt > 0, 1, 0)
     # add a feature: has_fireplace
     df['bool_has_fireplace'] = np.where(df.fireplacecnt > 0, 1, 0)
+    # add a feature: taxvalue_per_sqft
+    df['taxvalue_per_sqft'] = df.taxvaluedollarcnt / df.calculatedfinishedsquarefeet
+    # add a feature: taxvalue_per_bedroom
+    df['taxvalue_per_bedroom'] = df.taxvaluedollarcnt / df.bedroomcnt
+    #add a feature: taxvalue_per_bathroom
+    df['taxvalue_per_bathroom'] = df.taxvaluedollarcnt / df.bathroomcnt    
+    #add a feature: taxvalue_per_room
+    df['taxvalue_per_bathroom'] = df.taxvaluedollarcnt / (df.bathroomcnt + df.bedroomcnt)
     # adding prefix to boolean columns
     df = df.rename(columns={'hashottuborspa': 'bool_hashottuborspa'})
     df = df.rename(columns={'taxdelinquencyflag': 'bool_taxdelinquencyflag'})
