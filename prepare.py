@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.cluster import KMeans
+random_state=42
 
 
 def prep_zillow(df):
@@ -213,4 +215,54 @@ def encode_zillow(train, validate, test, target):
                                   drop_first=True)
         test = pd.concat([test, dummy_df], axis=1)
     
+    return train, validate, test
+
+def add_clusters(train, validate, test):
+    
+    # cluster_BedBath
+
+    features = ['scaled_bedroomcnt', 'scaled_bathroomcnt']
+    x = train[features]
+    kmeans = KMeans(n_clusters=3, random_state=random_state)
+    kmeans.fit(x)
+
+    for sample in [train, validate, test]:
+        x = sample[features]
+        sample['cluster_BedBath'] = kmeans.predict(x)
+        sample['cluster_BedBath'] = sample.cluster_BedBath.map({1:'low', 0:'mid', 2:'high'})
+
+
+    # cluster_BedBathSqft
+
+    features = ['scaled_bedroomcnt', 'scaled_bathroomcnt', 'scaled_sqft']
+    x = train[features]
+    kmeans = KMeans(n_clusters=3, random_state=random_state)
+    kmeans.fit(x)
+
+    for sample in [train, validate, test]:
+        x = sample[features]
+        sample['cluster_BedBathSqft'] = kmeans.predict(x)
+        sample['cluster_BedBathSqft'] = sample.cluster_BedBathSqft.map({1:'low', 0:'mid', 2:'high'})
+
+    # cluster_LatLong
+    features = ['scaled_latitude', 'scaled_longitude']
+    x = train[features]
+    kmeans = KMeans(n_clusters=4, random_state=random_state)
+    kmeans.fit(x)
+
+    for sample in [train, validate, test]:
+        x = sample[features]
+        sample['cluster_LatLong'] = kmeans.predict(x)
+        sample['cluster_LatLong'] = sample.cluster_LatLong.map({0:'east', 1:'central', 2:'west', 3:'north'})
+
+    # cluster_BedBathTaxvaluepersqft
+    featyres = ['scaled_bedroomcnt', 'scaled_bathroomcnt', 'scaled_taxvalue_per_sqft']
+    x = train[features]
+    kmeans = KMeans(n_clusters=3, random_state=random_state)
+    kmeans.fit(x)
+
+    for sample in [train, validate, test]:
+        x = sample[features]
+        sample['cluster_BedBathTaxvaluepersqft'] = kmeans.predict(x)
+
     return train, validate, test
