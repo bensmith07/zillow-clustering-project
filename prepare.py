@@ -61,6 +61,11 @@ def prep_zillow(df):
     df = df.rename(columns={'taxdelinquencyflag': 'bool_taxdelinquencyflag'})
     # rename sqft column
     df = df.rename(columns={'calculatedfinishedsquarefeet': 'sqft'})
+    # add a column: absolute value of logerror (derived form target)
+    df['abs_logerror'] = abs(df.logerror)
+    # add a column: direction of logerror (high or low) (derived from target)
+    df['logerror_direction'] = np.where(df.logerror < 0, 'low', 'high')
+
 
     return df
 
@@ -139,7 +144,7 @@ def scale_zillow(train, validate, test, target, scaler_type=MinMaxScaler()):
     '''
     # identify quantitative features to scale
     quant_features = [col for col in train.columns if (train[col].dtype != 'object') 
-                                                    & (col != target) 
+                                                    & (target not in col) 
                                                     & ('bool_' not in col)]
     # establish empty dataframes for storing scaled dataset
     train_scaled = pd.DataFrame(index=train.index)
@@ -175,7 +180,7 @@ def encode_zillow(train, validate, test, target):
     # identify the features to encode (categorical features represented by non-numeric data types)
     features_to_encode = [col for col in train.columns if (train[col].dtype == 'object')
                                                         & ('bool_' not in col) 
-                                                        & (col != target)
+                                                        & (target not in col)
                                                         & (train[col].nunique() < 25)]
     #iterate through the list of features                  
     for feature in features_to_encode:
