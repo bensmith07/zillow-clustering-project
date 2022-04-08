@@ -50,6 +50,9 @@ def prep_zillow(df):
     # changing year from float to int
     df['yearbuilt'] = df.yearbuilt.apply(lambda x: int(x))
     df['assessmentyear'] = df.yearbuilt.apply(lambda x: int(x))
+    # moving the latitude and longitude decimal place
+    df['latitude'] = df.latitude / 1_000_000
+    df['longitude'] = df.longitude / 1_000_000
     # adding a feature: age 
     df['age'] = 2017 - df.yearbuilt
     # add a feature: has_garage
@@ -256,7 +259,7 @@ def add_clusters(train, validate, test):
         sample['cluster_LatLong'] = sample.cluster_LatLong.map({0:'east', 1:'central', 2:'west', 3:'north'})
 
     # cluster_BedBathTaxvaluepersqft
-    featyres = ['scaled_bedroomcnt', 'scaled_bathroomcnt', 'scaled_taxvalue_per_sqft']
+    features = ['scaled_bedroomcnt', 'scaled_bathroomcnt', 'scaled_taxvalue_per_sqft']
     x = train[features]
     kmeans = KMeans(n_clusters=3, random_state=random_state)
     kmeans.fit(x)
@@ -264,5 +267,6 @@ def add_clusters(train, validate, test):
     for sample in [train, validate, test]:
         x = sample[features]
         sample['cluster_BedBathTaxvaluepersqft'] = kmeans.predict(x)
+        sample['cluster_BedBathTaxvaluepersqft'] = sample.cluster_BedBathTaxvaluepersqft.astype(str)
 
     return train, validate, test
