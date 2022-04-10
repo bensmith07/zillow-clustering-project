@@ -7,6 +7,24 @@ random_state=42
 
 
 def prep_zillow(df):
+    '''
+    This function takes in the zillow df acquired from the codeup MySQL database and performs 
+    the following actions:
+    - filters the data for only Single Family Residential properties
+    - drops redundant foreign key identification code columns
+    - drops other redundant, irrelevant, or non-useful columns
+    - handles null valuesby:
+        - filling null values with 0's in the following columns, since it is reasonable to assume nulls in these columns represent zero values: 
+            - `fireplacecnt`, `garagecarcnt`, `garagetotalsqft`, `hashottuborspa`, `poolcnt`, `threequarterbathnbr`, `taxdelinquencyflag`
+        - then dropping columns that remain where greater than 5% of values in that column are null
+        - then dropping rows that remain with any null values
+    - changes data types to more appropriately reflect the data they represent
+    - adds the following engineered feature columns (see data-dictionary for details):
+        - `age`, `bool_has_garage`, `bool_has_pool`, `bool_has_fireplace`, `taxvalue_per_sqft`, `taxvalue_per_bedroom`, `taxvalue_per_bathroom`
+    - adds the following target-related columns (for exploration) (see data-dictionary for details): 
+        - `abs_logerror`, `logerror_direction`
+    The cleaned and prepped df is returned.
+    '''
     # drop redundant id code columns
     id_cols = [col for col in df.columns if 'typeid' in col or col in ['id', 'parcelid']]
     df = df.drop(columns=id_cols)
@@ -82,7 +100,7 @@ def prep_zillow(df):
 
     return df
 
-def train_validate_test_split(df, test_size=.2, validate_size=.3, random_state=42):
+def train_validate_test_split(df, test_size=.2, validate_size=.3, random_state=random_state):
     '''
     This function takes in a dataframe, then splits that dataframe into three separate samples
     called train, test, and validate, for use in machine learning modeling.
@@ -221,19 +239,33 @@ def encode_zillow(train, validate, test, target):
     return train, validate, test
 
 def add_clusters(train, validate, test):
+    '''
+    This function takes in the train, validate, and test samples from the zillow dataset.
+    It then performs clustering on various combinations of features in the train sample, 
+    using the process outlined in the explore_notebook.ipynb. 
+    Those clusters are then given useful names where appropriate, and added
+    as categorical features to the dataset.
+
+    The train, validate, and test df's are returned, in that order.
+    '''
     
     # cluster_BedBath
 
+    # identify features
     features = ['scaled_bedroomcnt', 'scaled_bathroomcnt']
+    # create the df to cluster on 
     x = train[features]
+    # create and fit the KMeans object
     kmeans = KMeans(n_clusters=3, random_state=random_state)
     kmeans.fit(x)
 
+    # create cluster labels for each of the samples and add as an additional column
     for sample in [train, validate, test]:
         x = sample[features]
         sample['cluster_BedBath'] = kmeans.predict(x)
         sample['cluster_BedBath'] = sample.cluster_BedBath.map({1:'low', 0:'mid', 2:'high'})
 
+    # repeat the process for each of the desired feature combinations on which to cluster
 
     # cluster_BedBathSqft
 
