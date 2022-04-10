@@ -42,7 +42,7 @@ By creating a reliable model for predicting property values, Zillow can enhance 
 |'decktypeid' |	Type of deck (if any) present on parcel |
 |'threequarterbathnbr'	|  Number of 3/4 bathrooms in house (shower + sink + toilet) |
 |'finishedfloor1squarefeet' |	 Size of the finished living area on the first (entry) floor of the home |
-|'calculatedfinishedsquarefeet'	| Calculated total finished living area of the home  |
+|'sqft'	| Calculated total finished living area of the home  |
 |'finishedsquarefeet6' |	Base unfinished and finished area |
 |'finishedsquarefeet12' |	Finished living area |
 |'finishedsquarefeet13' |	Perimeter  living area |
@@ -54,7 +54,7 @@ By creating a reliable model for predicting property values, Zillow can enhance 
 |'fullbathcnt' |	 Number of full bathrooms (sink, shower + bathtub, and toilet) present in home |
 |'garagecarcnt' |	 Total number of garages on the lot including an attached garage |
 |'garagetotalsqft' |	 Total number of square feet of all garages on lot including an attached garage |
-|'hashottuborspa'	|  Does the home have a hot tub or spa |
+|'bool_hashottuborspa'	|  Does the home have a hot tub or spa |
 |'heatingorsystemtypeid' |	 Type of home heating system |
 |'latitude' |	 Latitude of the middle of the parcel multiplied by 10e6 |
 |'longitude' |	 Longitude of the middle of the parcel multiplied by 10e6 |
@@ -82,8 +82,22 @@ By creating a reliable model for predicting property values, Zillow can enhance 
 |'landtaxvaluedollarcnt' |	The assessed value of the land area of the parcel |
 |'taxamount' |	The total property tax assessed for that assessment year |
 |'assessmentyear' |	The year of the property tax assessment  |
-|'taxdelinquencyflag' |	Property taxes for this parcel are past due as of 2015 |
+|'bool_taxdelinquencyflag' |	Property taxes for this parcel are past due as of 2015 |
 |'taxdelinquencyyear' |	Year for which the unpaid propert taxes were due  |
+
+#### Engineered Columns
+| Variable | Meaning |
+| -------  | ------- | 
+| age | age of the principal structure in years |
+| bool_has_garage | whether or not there is a garage on the property |
+| bool_has_pool | whether or not there is a pool on the property |
+| bool_has_fireplace | whether or not there is a fireplace in the home |
+| taxvalue_per_sqft | taxvaluedollarcnt divided by sqft |
+| taxvalue_per_bedroom | taxvaluedollarcnt divided by bedroomcnt |
+| taxvalue_per_bathroom | taxvaluedollarcnt divided by bathroomcnt |
+| abs_logerror | absolute value of logerror |
+| logerror_direction | whether the predicted value was lower or higher than the actual value, based on negative or positive logerror |
+
 
 ### Steps to Reproduce
 
