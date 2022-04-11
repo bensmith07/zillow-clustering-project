@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans
-random_state=42
+random_state = 42
 
 
 def prep_zillow(df):
@@ -110,9 +110,9 @@ def train_validate_test_split(df, test_size=.2, validate_size=.3, random_state=r
     The function also prints the size of each sample.
     '''
     # split the dataframe into train and test
-    train, test = train_test_split(df, test_size=.2, random_state=42)
+    train, test = train_test_split(df, test_size=.2, random_state=random_state)
     # further split the train dataframe into train and validate
-    train, validate = train_test_split(train, test_size=.3, random_state=42)
+    train, validate = train_test_split(train, test_size=.3, random_state=random_state)
     # print the sample size of each resulting dataframe
     print(f'train\t n = {train.shape[0]}')
     print(f'test\t n = {test.shape[0]}')

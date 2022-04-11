@@ -438,3 +438,33 @@ def run_PolyReg_with_clusters(train, validate, target, model_number, model_info,
             model_results = model_results.append(dct, ignore_index=True)
             
     return model_number, model_info, model_results
+
+def test_model_8(train, test, target):
+    
+    # identify features used in the model
+    features = ['scaled_sqft',
+                'scaled_bedroomcnt',
+                'scaled_bathroomcnt',
+                'scaled_fullbathcnt',
+                'scaled_age',
+                'scaled_assessmentyear',
+                'scaled_yearbuilt',
+                'scaled_garagecarcnt',
+                'scaled_garagetotalsqft',
+                'enc_cluster_BedBathTaxvaluepersqft_1',
+                'enc_cluster_BedBathTaxvaluepersqft_2']
+    
+    #split the samples into x and y
+    x_train = train[features]
+    y_train = train[target]
+
+    x_test = test[features]
+    y_test = test[target]
+
+    # create the model object and fit to the training sample
+    linreg = LinearRegression(normalize=True).fit(x_train, y_train)
+
+    # make predictions for the test sample
+    y_pred = linreg.predict(x_test)
+    
+    print(f'Model #8 RMSE on test sample: {round(sqrt(sk.metrics.mean_squared_error(y_test, y_pred)),7)}')
