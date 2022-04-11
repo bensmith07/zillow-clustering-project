@@ -97,6 +97,10 @@ By creating a reliable model for predicting property values, Zillow can enhance 
 | taxvalue_per_bathroom | taxvaluedollarcnt divided by bathroomcnt |
 | abs_logerror | absolute value of logerror |
 | logerror_direction | whether the predicted value was lower or higher than the actual value, based on negative or positive logerror |
+| cluster_BedBath | categories based on K-Means, n_clusters=3, on bedroomcnt and bathroomcnt |
+| cluster_BedBathSqft | categories based on K-Means, c_cluster=3, on bedroomcnt, bathroomcnt, and sqft |
+| cluster_BedBathTaxvaluesqft | categories based on K-Means, n_clusters=3, on bedroomcnt, bathroomcnt, and taxvalue_persqft |
+| cluster_LatLong | categories based on K-Means, n_clusters=4, on latitude and longitude |
 
 
 ### Steps to Reproduce
@@ -133,10 +137,8 @@ _ We then chose the model which performed with the smallest error on unseen data
 
 ### How did we do?
 
--------------------
+We expect that our top performing model will typically predict a logerror value that is within .066259 of the actual logerror value. This is a small error, but it is only slightly better than our baseline of .066873. While this indicates that we may not be able to improve the Zestimate by leaps and bounds, we have successfully identified drivers of error in the estimate, and have created a jumping-off point for further analysis and modeling.
 
-
--------------------
 
 ### Key Findings:
 
